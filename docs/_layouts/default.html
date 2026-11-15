@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{ page.description | default: site.description | escape }}">
+  <meta name="theme-color" content="#0b1110">
+  <title>{{ page.title | default: site.title | escape }}</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b1110; --panel:#111b18; --panel2:#15231e; --text:#e7eee9; --muted:#a3b5aa; --line:#263a31; --accent:#7dd3a7; --accent2:#b5ebcb; --code:#0b1511; }
+    * { box-sizing:border-box }
+    html { scroll-behavior:smooth; scroll-padding-top:84px }
+    body { margin:0; background:radial-gradient(ellipse at 80% -15%, #18372a 0, transparent 38%),var(--bg); color:var(--text); font-family:Vazirmatn,"Noto Sans Arabic","Noto Naskh Arabic",Tahoma,sans-serif; line-height:1.95; }
+    a { color:var(--accent2); text-decoration:none }
+    a:hover { color:#fff; text-decoration:underline }
+    .top { position:sticky; top:0; z-index:5; backdrop-filter:blur(16px); background:#0b1110df; border-bottom:1px solid var(--line) }
+    .top-inner { max-width:1220px; margin:auto; padding:13px 22px; display:flex; align-items:center; justify-content:space-between; gap:18px }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:800; color:var(--text); letter-spacing:-.3px }
+    .mark { display:grid; place-items:center; width:38px; height:38px; border-radius:13px; background:linear-gradient(145deg,#8be4b4,#26734a); color:#07120c; font-size:22px; font-weight:900; box-shadow:0 6px 24px #2f9b5d40 }
+    .top-links { display:flex; flex-wrap:wrap; align-items:center; gap:16px; font-size:13px }
+    .hero { max-width:1220px; margin:38px auto 24px; padding:0 22px }
+    .eyebrow { color:var(--accent); font-size:12px; letter-spacing:1px; font-weight:800 }
+    h1 { font-size:clamp(28px,4vw,46px); line-height:1.45; margin:8px 0 10px; letter-spacing:-1px }
+    .lead { color:var(--muted); max-width:850px; font-size:16px }
+    .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px }
+    .chip { padding:5px 11px; border:1px solid var(--line); border-radius:999px; background:#12201a; color:#c4d7ca; font-size:12px }
+    .layout { max-width:1220px; margin:auto; padding:0 22px 70px; display:grid; grid-template-columns:245px minmax(0,1fr); gap:22px; align-items:start }
+    nav { position:sticky; top:78px; max-height:calc(100vh - 96px); overflow:auto; padding:17px; background:#101915d9; border:1px solid var(--line); border-radius:18px }
+    nav strong { display:block; margin-bottom:9px; color:var(--accent); font-size:13px }
+    nav a { display:block; color:var(--muted); padding:5px 2px; font-size:12px }
+    nav a:hover { color:var(--accent2) }
+    article { min-width:0; background:linear-gradient(180deg,#111b18f5,#101715f8); border:1px solid var(--line); border-radius:22px; padding:clamp(18px,3vw,38px); box-shadow:0 20px 70px #0003 }
+    article h1 { display:none }
+    h2 { font-size:23px; line-height:1.6; margin:38px 0 12px; padding-bottom:9px; border-bottom:1px solid var(--line); color:#e9f6ee }
+    h3 { color:var(--accent2); font-size:17px; margin:24px 0 8px }
+    p { margin:10px 0 14px }
+    ul,ol { padding-right:25px; padding-left:0 }
+    li { margin:5px 0 }
+    blockquote { margin:18px 0; padding:13px 17px; border-right:3px solid var(--accent); background:var(--panel2); border-radius:10px; color:#c5d5cb }
+    table { display:block; width:100%; overflow-x:auto; border-collapse:collapse; margin:18px 0; font-size:13px }
+    th,td { border:1px solid var(--line); padding:9px 11px; text-align:right; min-width:130px }
+    th { background:#1a2b23; color:var(--accent2) }
+    tr:nth-child(even) td { background:#ffffff04 }
+    code { direction:ltr; unicode-bidi:embed; background:#1d2c24; color:#d5f4df; padding:2px 6px; border-radius:6px; font-size:.92em }
+    pre { direction:ltr; text-align:left; overflow:auto; background:var(--code); border:1px solid var(--line); border-radius:12px; padding:15px; line-height:1.65; }
+    pre code { background:transparent; padding:0; color:#d4efdc; white-space:pre }
+    hr { border:0; border-top:1px solid var(--line); margin:30px 0 }
+    .foot { max-width:1220px; margin:0 auto; padding:0 22px 35px; color:var(--muted); font-size:12px }
+    @media (max-width:850px) { .layout { grid-template-columns:1fr } nav { position:static; max-height:none; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:2px 12px } nav strong { grid-column:1/-1 } .top-inner { align-items:flex-start } }
+    @media (max-width:520px) { .top-links { gap:8px; font-size:11px } nav { grid-template-columns:1fr } article { border-radius:16px } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="{{ site.baseurl }}/">
+        <span class="mark">P</span><span>Peeky · مستندات</span>
+      </a>
+      <div class="top-links">
+        <a href="{{ site.baseurl }}/">راهنما</a>
+        <a href="https://github.com/ahb1390/peeky">مخزن GitHub</a>
+        <a href="https://github.com/ahb1390/peeky/issues">گزارش مشکل</a>
+      </div>
+    </div>
+  </header>
+  <section class="hero">
+    <div class="eyebrow">راهنمای فارسی · WINDOWS & LINUX</div>
+    <h1>{{ page.title | default: site.title }}</h1>
+    <p class="lead">{{ site.description }}</p>
+    <div class="chips">
+      <span class="chip">نصب و راه‌اندازی</span>
+      <span class="chip">لینوکس · X11 · Wayland</span>
+      <span class="chip">کلیپ‌بورد و اسکرین‌شات</span>
+      <span class="chip">حریم خصوصی</span>
+    </div>
+  </section>
+  <div class="layout">
+    <nav aria-label="فهرست راهنما">
+      <strong>در این راهنما</strong>
+      <a href="#overview">معرفی و امکانات</a>
+      <a href="#screenshot">اسکرین‌شات ناحیه‌ای</a>
+      <a href="#ocr">Text Grab و OCR</a>
+      <a href="#clipboard">تاریخچهٔ کلیپ‌بورد</a>
+      <a href="#linux-install">نصب لینوکس</a>
+      <a href="#linux-dependencies">ابزارهای اختیاری</a>
+      <a href="#display-servers">X11 و Wayland</a>
+      <a href="#linux-features">وضعیت امکانات</a>
+      <a href="#build">ساخت از سورس</a>
+      <a href="#data">مسیر داده‌ها</a>
+      <a href="#privacy">حریم خصوصی</a>
+      <a href="#troubleshooting">عیب‌یابی</a>
+      <a href="#contributing">مشارکت</a>
+    </nav>
+    <article>
+      {{ content }}
+    </article>
+  </div>
+  <footer class="foot">
+    مستندات این صفحه در مخزن ahb1390/peeky نگهداری می‌شود. برای پیشنهاد اصلاح یا گزارش باگ از Issues استفاده کنید.
+  </footer>
+</body>
+</html>

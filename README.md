@@ -51,6 +51,39 @@ Windows 10 or 11 with the WebView2 runtime (already part of Windows 11 and of cu
 
 The installer is not code-signed, so Windows SmartScreen may ask once whether to run it.
 
+[مستندات فارسی جامع و راهنمای لینوکس](docs/index.md) · [صفحهٔ راهنمای وب](https://ahb1390.github.io/peeky/)
+
+## Install on Linux
+
+Download the `peeky_2.1.2_amd64.deb` asset from the GitHub release and install it with:
+
+```sh
+sudo apt install ./peeky_2.1.2_amd64.deb
+```
+
+For a local build, after installing `python3-pil`, run:
+
+```sh
+python3 - <<'PY'
+from PIL import Image
+from pathlib import Path
+source = Image.open('src-tauri/icons/icon.ico').convert('RGBA')
+for name, size in [('32x32.png', 32), ('128x128.png', 128), ('128x128@2x.png', 256), ('icon.png', 512)]:
+    source.resize((size, size), Image.Resampling.LANCZOS).save(Path('src-tauri/icons') / name)
+PY
+cd src-tauri
+cargo tauri build --release --bundles deb
+```
+
+The package is built for Debian 12+ and Ubuntu 22.04+ (x86_64). The GitHub build generates the Linux PNG icon sizes from the project's existing ICO file. For a local package build, install `python3-pil` and generate the icon files first. Optional desktop helpers:
+
+- X11 pointer tracking: `xdotool`
+- Wayland screenshots: `grim` and `slurp`
+- X11 screenshots: `flameshot` or `gnome-screenshot`
+- Password storage: `libsecret-tools` and an unlocked Secret Service provider (GNOME Keyring or KWallet)
+- Media controls: `playerctl`
+- Volume: `wpctl` (PipeWire) or `pactl` (PulseAudio)
+
 ## Privacy
 
 Peeky makes no network requests except checking this repository for a new release (which can be switched off).
@@ -68,8 +101,13 @@ Every push is built by [GitHub Actions](.github/workflows/build.yml); a tag `vX.
 
 ## Platforms
 
-Windows today. A Linux version is being worked on; the backend talks to Windows directly for almost everything
-(notifications, media session, clipboard, the click-through window), so it is a port, not a rebuild.
+- **Windows 10/11:** native Windows backend with WebView2.
+- **Linux (Debian 12+, Ubuntu 22.04+, x86_64):** native GTK/WebKitGTK backend, packaged as DEB. X11 and Wayland are supported, with compositor-specific limitations.
+- Linux media uses MPRIS/playerctl; volume uses PipeWire/wpctl or PulseAudio/pactl; password storage uses Secret Service; desktop integration uses XDG paths and autostart.
+
+Linux now includes selected-region screenshots, Persian Text Grab, text-and-image clipboard history, media and volume controls, notes, timer, password vault, file shelf drag-out, Bluetooth and capture-activity indicators, audio visualisation and signed DEB updates. Exact availability depends on desktop helpers and compositor support. Wayland global shortcuts are not yet implemented; live notification integration is currently KDE Plasma-specific; active-window context is supported on X11, Sway and Hyprland, with GNOME Wayland still limited.
+
+For the complete Persian setup guide, feature matrix, dependency list and troubleshooting steps, see [مستندات فارسی Peeky](docs/index.md) or the [documentation site](https://ahb1390.github.io/peeky/) (after GitHub Pages is enabled).
 
 ## License
 
@@ -81,32 +119,24 @@ Windows today. A Linux version is being worked on; the backend talks to Windows 
 
 ## فارسی
 
-**Peeky یک جزیرهٔ کوچک و زنده برای ویندوز است.** یک قرص کوچک بالای صفحه که آهنگ در حال پخش را نشان می‌دهد،
-نوتیفیکیشن‌ها را می‌گیرد، چیزهایی که کپی کرده‌ای یادش می‌ماند، فایل‌هایت را نگه می‌دارد و بین این کارها پلک می‌زند.
+**Peeky یک جزیرهٔ کوچک و زنده برای دسکتاپ است.** این فورک علاوه بر ویندوز، پشتیبانی لینوکس را نیز توسعه می‌دهد.
 
-### امکانات
+امکانات اصلی شامل پخش رسانه، اعلان‌ها، اسکرین‌شات ناحیه‌ای، استخراج متن فارسی از تصویر، تاریخچهٔ کلیپ‌بورد با پشتیبانی متن و تصویر، یادداشت سریع، خزانهٔ رمز، تایمر و نگهداری فایل‌ها است.
 
-- **پخش موزیک:** نام آهنگ، خواننده، کاور، دکمه‌های کنترل و نوار جلو و عقب بردن. با فیلم و بازی تمام‌صفحه کاری ندارد.
-- **تم‌های متحرک:** کموهای مایع که آرام حرکت می‌کنند و با ضرب آهنگ پر از رنگ می‌شوند (می‌شود واکنش به موزیک را خاموش کرد).
-- **ونوم:** خود جزیره به لجن سیاه زنده تبدیل می‌شود.
-- **نوتیفیکیشن در یک خط:** با کلیک همان چت باز می‌شود. وقتی مشغول کار با جزیره‌ای، کنار آن منتظر می‌ماند.
-- **کپی هوشمند:** لینکِ کپی‌شده باز می‌شود، حساب جواب می‌گیرد، تاریخ میلادی و شمسی به هم تبدیل می‌شوند.
-- **نگه‌داشتن فایل:** فایل را روی جزیره رها کن؛ کنار هم می‌مانند تا دوباره بیرونشان بکشی.
-- **یادداشت سریع:** `Ctrl+Alt+N` از هر جا. اگر در متن زمان باشد («۱۰ دقیقه دیگه چای») یادآور می‌شود.
-- **رمزها:** رمز می‌سازد، سایت و ایمیل را می‌پرسد و ذخیره می‌کند (رمزنگاری‌شده با حساب ویندوز).
-- **خواندن متن از صفحه:** `Ctrl+Alt+T`، دور متن کادر بکش؛ انگلیسی و فارسی. همه‌چیز روی سیستم خودت انجام می‌شود.
-- **تایمر، تاریخچهٔ کپی با عکس، نشانگر میکروفون و دوربین، وضعیت اینترنت و VPN.**
-- **راهنمای داخل برنامه:** بار اول خودش فهرست قابلیت‌ها را نشان می‌دهد؛ بعداً از تنظیمات، «What Peeky can do».
-- **آپدیت خودکار:** نسخهٔ جدید دانلود، با کلید پروژه بررسی و با یک کلیک نصب می‌شود.
+### نصب در لینوکس
 
-### نصب
+بستهٔ DEB را از [Releases](https://github.com/ahb1390/peeky/releases) دریافت و نصب کنید:
 
-فایل **[Peeky-Setup.exe](https://github.com/raminturne/peeky/releases/latest/download/Peeky-Setup.exe)** را دانلود و اجرا کن.
-فقط برای کاربر فعلی نصب می‌شود و دسترسی ادمین نمی‌خواهد.
+~~~bash
+sudo apt install ./peeky_VERSION_amd64.deb
+~~~
 
-### حریم خصوصی
+بستهٔ رسمی برای Debian 12+ و Ubuntu 22.04+ روی x86_64 ساخته می‌شود. در Wayland بعضی امکانات به compositor و ابزارهای انتخاب‌گر تصویر وابسته‌اند؛ مستندات کامل، وابستگی‌ها، تفاوت X11 و Wayland و راه‌حل خطاهای رایج در راهنمای فارسی آمده است.
 
-Peeky هیچ درخواست اینترنتی‌ای نمی‌فرستد، به‌جز بررسی همین مخزن برای نسخهٔ جدید (که می‌شود خاموشش کرد).
-نوتیفیکیشن‌ها، کلیپ‌بورد، یادداشت‌ها و رمزها روی سیستم خودت می‌مانند.
+### مستندات
+
+- [راهنمای کامل فارسی در مخزن](docs/index.md)
+- [صفحهٔ مستندات فارسی](https://ahb1390.github.io/peeky/)
+- [گزارش مشکل و پیشنهاد](https://github.com/ahb1390/peeky/issues)
 
 </div>

@@ -1,0 +1,12 @@
+title: مستندات فارسی Peeky
+description: راهنمای جامع نصب، امکانات، پیکربندی، لینوکس، عیب‌یابی و توسعهٔ Peeky
+url: https://ahb1390.github.io
+baseurl: /peeky
+lang: fa
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+permalink: pretty
+exclude:
+  - README.fa.md

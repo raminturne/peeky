@@ -105,13 +105,30 @@ const timer = { left: 25 * 60000, endAt: 0, running: false, done: false };
 const views = Object.fromEntries($$('.view').map((v) => [v.dataset.view, v]));
 let cur = 'idle';
 
+// The idle face is a real activation target on Linux. This is also the fallback when a
+// compositor or X11 pointer watcher does not deliver global hover updates after relaunch.
+island.addEventListener('click', (event) => {
+  if (st.settings.platform !== 'linux' || cur !== 'idle' || st.tucked) return;
+  if (event.target.closest('button, input, a, .row')) return;
+  st.hover = true;
+  st.manual = 'tools';
+  st.enteredAt = Date.now() - 200;
+  st.leftAt = 0;
+  syncMouse(true);
+  render();
+});
+
 // music counts only when it is not a video and nothing is running fullscreen (a film, a game)
 const musicOn = () => st.media.active && !(st.hideVideo && (st.media.video || st.full));
 
 function pickView() {
   const now = Date.now();
   if (st.force) return st.force;
+  // Text entry and password generation must be able to temporarily cover a running
+  // timer. The countdown keeps using endAt and returns to the pill when the prompt ends.
   if (st.typing) return 'input';
+  if (st.manual === 'gen') return 'gen';
+  if (st.manual === 'timer' || timer.running) return 'timer';
   if (dragging()) return 'drop';
   if (st.notif) return 'notif';
   if (now < st.volUntil) return 'vol';
@@ -120,7 +137,9 @@ function pickView() {
   if (st.shelfOn && st.shelf.length) return 'held';      // held files stay on the pill until they are taken out
   const m = st.media;
   if (musicOn() && !st.menuMode && (m.playing || now - st.pausedAt < 12000)) return 'media';
-  if (st.hover && now - st.enteredAt > 130) return 'tools';
+  // Linux keeps the tiny animated face idle on hover. Open the action panel only after
+  // an intentional click; Windows preserves its original hover-to-expand interaction.
+  if (st.settings.platform !== 'linux' && st.hover && now - st.enteredAt > 130) return 'tools';
   if ((st.hover || now - st.leftAt < 380) && cur === 'tools') return 'tools';
   return 'idle';
 }
@@ -154,6 +173,7 @@ function render() {
   island.classList.toggle('dropping', dragging());
   if (st.tucked) {
     if (island.dataset.w !== 'tuck') { island.dataset.w = 'tuck'; island.style.width = '56px'; }
+    window.qazi.refreshInputRegion?.();
     return;
   }
   const v = pickView();
@@ -162,13 +182,28 @@ function render() {
     views[v].classList.add('on');
     cur = v;
   }
-  const w = clamp(Math.ceil(views[cur].offsetWidth), 70, 600);
+  // On Linux the action strip is a drop-down under the small face, not a 600px-wide
+  // bar across the browser's tab row. Windows keeps the original expanding-pill layout.
+  const linuxTools = st.settings.platform === 'linux' && cur === 'tools';
+  const linuxTimer = st.settings.platform === 'linux' && cur === 'timer';
+  const linuxInput = st.settings.platform === 'linux' && cur === 'input';
+  const linuxGen = st.settings.platform === 'linux' && cur === 'gen';
+  const linuxPopover = linuxTools || linuxTimer || linuxInput || linuxGen;
+  island.classList.toggle('tools-open', linuxTools);
+  island.classList.toggle('timer-open', linuxTimer);
+  island.classList.toggle('input-open', linuxInput);
+  island.classList.toggle('gen-open', linuxGen);
+  document.body.classList.toggle('linux-tools-open', linuxTools);
+  document.body.classList.toggle('linux-timer-open', linuxTimer);
+  document.body.classList.toggle('linux-input-open', linuxInput);
+  const w = linuxPopover ? 84 : clamp(Math.ceil(views[cur].offsetWidth), 70, 600);
   if (island.dataset.w !== String(w)) {
     island.dataset.w = w;
     island.style.width = w + 'px';
     glow.style.width = w + 50 + 'px'; glow.style.marginLeft = -(w + 50) / 2 + 'px';
     if (sideN) placeSide();
   }
+  window.qazi.refreshInputRegion?.();
 }
 setInterval(render, 70);
 
@@ -186,11 +221,25 @@ function evalHover(x, y) {
 function hoverNow() {
   const x = st.cx, y = st.cy, r = island.getBoundingClientRect();
   let inside = x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 10 && y <= r.bottom + 8;
-  if (!inside && st.stackOpen) {      // the stack and the gap leading to it count as "on the island"
-    const s = stackEl.getBoundingClientRect();
-    inside = x >= s.left - 4 && x <= s.right + 4 && y >= r.bottom && y <= s.bottom + 10;
+  const activeView = island.querySelector('.view.on');
+  const activeRect = activeView && activeView.getBoundingClientRect();
+  if (!inside && activeRect && activeView.dataset.view !== 'idle') {
+    inside = x >= activeRect.left - 6 && x <= activeRect.right + 6
+      && y >= activeRect.top - 6 && y <= activeRect.bottom + 6;
   }
-  if (!inside && sideN) { const s = side.getBoundingClientRect(); inside = x >= s.left - 8 && x <= s.right + 4 && y >= s.top - 6 && y <= s.bottom + 6; }
+  if (!inside && st.stackOpen) {
+    const s = stackEl.getBoundingClientRect();
+    const center = (r.left + r.right) / 2;
+    const fromBottom = activeView && ['tools', 'timer', 'input', 'gen'].includes(activeView.dataset.view) && activeRect
+      ? activeRect.bottom
+      : r.bottom;
+    const inStack = x >= s.left - 6 && x <= s.right + 6
+      && y >= s.top - 6 && y <= s.bottom + 10;
+    const inConnector = x >= center - 48 && x <= center + 48
+      && y >= fromBottom - 6 && y <= s.top + 6;
+    inside = inStack || inConnector;
+  }
+  if (!inside && sideN) { const s = side.getBoundingClientRect(); inside = x >= s.left - 10 && x <= s.right + 6 && y >= s.top - 8 && y <= s.bottom + 8; }
   if (inside === st.hover || st.dragOut) return false;       // mid-drag the window must not switch to click-through
   st.hover = inside;
   island.classList.toggle('hover', inside && !st.stackOpen && !st.typing);
@@ -202,7 +251,19 @@ function hoverNow() {
 // Every press that Windows delivers to the island is announced here too. If the page's own event for it never
 // arrives (it has happened: the pill looked alive but ignored clicks), the click is carried out anyway.
 let lastDown = 0, lostClicks = 0;
-document.addEventListener('pointerdown', () => { lastDown = performance.now(); }, true);
+document.addEventListener('pointerdown', (event) => {
+  lastDown = performance.now();
+  // A stationary pointer may not produce pointermove after startup. Treat a direct
+  // click on the idle face as an explicit request to open the action strip.
+  if (st.tucked || st.hover || !island.contains(event.target)) return;
+  st.cx = event.clientX;
+  st.cy = event.clientY;
+  st.hover = true;
+  st.enteredAt = Date.now() - 140;
+  island.classList.add('hover');
+  syncMouse();
+  render();
+}, true);
 window.qazi.onPress(({ x, y }) => {
   const at = performance.now();
   setTimeout(() => {
@@ -312,7 +373,7 @@ side.addEventListener('click', () => {
   if (n) {
     if (n.action === 'dnd') window.qazi.action('dnd');
     else if (n.action === 'download') window.qazi.openDownload(n.path);
-    else if (n.action === 'update') window.qazi.updateInstall();
+    else if (n.action === 'update') installUpdate();
     else if (n.action === 'whatsnew') window.qazi.openUrl('https://github.com/raminturne/peeky/releases/tag/v' + n.version);
     else if (n.action === 'note') { st.holdUntil = Date.now() + 5000; setStack(true, 'notes'); }
     else if (n.action === 'tour') { st.holdUntil = Date.now() + 9000; st.revealUntil = Date.now() + 9000; setStack(true, 'tour'); }
@@ -356,7 +417,7 @@ views.notif.addEventListener('click', () => {
   if (n) {
     if (n.action === 'dnd') window.qazi.action('dnd');
     else if (n.action === 'download') window.qazi.openDownload(n.path);
-    else if (n.action === 'update') window.qazi.updateInstall();
+    else if (n.action === 'update') installUpdate();
     else if (n.action === 'whatsnew') window.qazi.openUrl('https://github.com/raminturne/peeky/releases/tag/v' + n.version);
     else if (n.action === 'note') { st.holdUntil = Date.now() + 5000; setStack(true, 'notes'); }
     else if (n.action === 'tour') { st.holdUntil = Date.now() + 9000; st.revealUntil = Date.now() + 9000; setStack(true, 'tour'); }
@@ -365,6 +426,12 @@ views.notif.addEventListener('click', () => {
   endNotif();
 });
 
+async function installUpdate() {
+  const ok = await window.qazi.updateInstall();
+  if (!ok) {
+    showHud('alert', 'Update not installed', 'Check the administrator prompt and system package manager', 4200, 'faded');
+  }
+}
 // ------------------------------------------------------------ notification stack
 function updateBadge() {       // the count lives on the bell inside the menu only — nothing is added next to the clock
   badge.textContent = st.unseen > 9 ? '9+' : st.unseen;
@@ -719,6 +786,9 @@ window.qazi.onHelper((m) => {
   else if (m.t === 'notif') onNotif(m);
   else if (m.t === 'notifGone') dropHistory(String(m.id));
   else if (m.t === 'cover') { st.covered = !!m.covered; st.full = !!m.full; render(); }
+  else if (m.t === 'capture-error') {
+    showHud('shot', 'Screenshot unavailable', m.message || 'No capture tool is available', 4200, 'faded');
+  }
   else if (m.t === 'bt') {
     if (!st.deviceAlerts) return;
     const audio = /bud|pod|head|ear|speaker|sound|audio|jbl|sony|bose|beats|wh-|wf-|anker|jabra/i.test(m.name);
@@ -726,7 +796,7 @@ window.qazi.onHelper((m) => {
   }
   else if (m.t === 'update') {
     st.update = m.version; gearBadge.classList.add('on');
-    showNotif({ app: 'Update', title: 'Version ' + m.version + ' is ready', body: 'click to install now (it also installs by itself when you step away)', action: 'update', long: true });
+    showNotif({ app: 'Update', title: 'Version ' + m.version + ' is ready', body: m.body || 'click to install now (it also installs by itself when you step away)', action: 'update', long: true });
     if (st.stackOpen && st.stackKind === 'settings') renderStack();
   }
   else if (m.t === 'updated') showNotif({ app: 'Update', title: 'Peeky was updated to ' + m.version, body: "click to see what's new", action: 'whatsnew', version: m.version, long: true });
@@ -1690,7 +1760,7 @@ function renderVault() {
   $('#stack-clear').classList.add('hidden');
   vaultHead();
   const note = (text) => { const e = document.createElement('div'); e.className = 'row empty wide'; e.textContent = text; stackList.appendChild(e); };
-  if (st.vault.locked) note('Saved passwords could not be opened on this account');
+  if (st.vault.locked) note('Password storage is unavailable. Install and unlock GNOME Keyring or another Secret Service provider, then restart Peeky.');
   const list = vaultFound();
   st.vaultSel = clamp(st.vaultSel, 0, Math.max(0, list.length - 1));
   if (!st.vault.items.length) { if (!st.vault.locked) note('No passwords yet — New makes one'); return; }
@@ -1827,10 +1897,16 @@ function renderSettings() {
     const l = document.createElement('span'); l.className = 'lbl';
     const b = document.createElement('b'); b.textContent = 'Version ' + st.update + ' is ready';
     const d = document.createElement('span'); d.className = 'dim';
-    d.textContent = s.autoUpdate !== false ? 'Installs by itself when you step away' : 'Takes a few seconds, then Peeky is back';
+    d.textContent = s.platform === 'linux'
+      ? 'Requires administrator approval; Peeky restarts after installation'
+      : (s.autoUpdate !== false ? 'Installs by itself when you step away' : 'Takes a few seconds, then Peeky is back');
     l.append(b, d);
     const go = document.createElement('button'); go.className = 'go solid'; go.textContent = 'Install now';
-    go.addEventListener('click', () => { go.textContent = 'Installing…'; window.qazi.updateInstall(); });
+    go.addEventListener('click', async () => {
+      go.textContent = 'Installing…';
+      const ok = await window.qazi.updateInstall();
+      if (!ok) { go.textContent = 'Install failed'; showHud('alert', 'Update not installed', 'Check the administrator prompt and system package manager', 4200, 'faded'); }
+    });
     row.append(ic, l, go);
     stackList.appendChild(row);
   }
@@ -1876,7 +1952,7 @@ function renderSettings() {
   info.textContent = (s.appName || 'Peeky') + ' ' + (s.version || '');
   const up = document.createElement('button'); up.className = 'go'; up.textContent = st.update ? 'Install ' + st.update : 'Check for updates';
   up.addEventListener('click', async () => {
-    if (st.update) { window.qazi.updateInstall(); return; }
+    if (st.update) { installUpdate(); return; }
     up.textContent = 'Checking…';
     const r = await window.qazi.updateCheck();
     if (r.startsWith('ready')) { st.update = r.slice(6); gearBadge.classList.add('on'); renderStack(); return; }
@@ -1945,10 +2021,17 @@ const blink = () => emote('blink', 130);
   }
   setTimeout(faceLoop, 1700 + Math.random() * 3600);
 })();
-// the eyes follow the cursor a little when it comes near
+// The face follows the system pointer on X11. Wayland only reports pointer movement
+// while the compositor routes events to Peeky's own surface.
 window.qazi.onCursor(({ x, y }) => {
+  // pointerleave uses this sentinel on Wayland, where global pointer queries are blocked.
+  if (x === -1000 && y === -1000) {
+    face.style.setProperty('--lx', '0px');
+    face.style.setProperty('--ly', '0px');
+    return;
+  }
   const dx = x - window.innerWidth / 2, dy = y - 26, d = Math.hypot(dx, dy);
-  const k = d < 420 && d > 1 ? Math.min(1, d / 120) : 0;
+  const k = d > 1 ? Math.min(1, d / 120) : 0;
   face.style.setProperty('--lx', (k ? dx / d * 2.4 * k : 0).toFixed(2) + 'px');
   face.style.setProperty('--ly', (k ? dy / d * 1.6 * k : 0).toFixed(2) + 'px');
 });
@@ -1957,6 +2040,7 @@ window.qazi.onCursor(({ x, y }) => {
 let hinted = false, toured = false;
 const applySettings = (s) => {
   if (!s) return;
+  document.body.classList.toggle('linux-host', s.platform === 'linux');
   st.autoHide = s.autoHide !== false;
   st.hideVideo = s.hideVideo !== false;
   st.notifMs = clamp(Number(s.notifSeconds) || 4, 2, 15) * 1000;
